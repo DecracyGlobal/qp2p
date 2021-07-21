@@ -56,7 +56,7 @@ struct Peer {
     endpoint: quinn::Endpoint,
     client_cfg: quinn::ClientConfig,
     message_tx: ChannelSender<(SocketAddr, Bytes)>,
-    connections: Arc<RwLock<Vec<quinn::NewConnection>>>,
+    connections: Arc<RwLock<Vec<quinn::Connection>>>,
 }
 
 impl Peer {
@@ -94,17 +94,21 @@ impl Peer {
                 ChannelReceiver::Bounded(message_rx),
             )
         };
+        let connections = Arc::new(RwLock::new(Vec::new()));
+        let conns = connections.clone();
         let message_sender = message_tx.clone();
         let _ = tokio::spawn(async move {
             loop {
                 match incoming.next().await {
                     Some(quinn_conn) => match quinn_conn.await {
-                        Ok(quinn::NewConnection {
-                            connection,
-                            uni_streams,
-                            ..
-                        }) => {
+                        Ok(conn) => {
+                            let quinn::NewConnection {
+                                connection,
+                                uni_streams,
+                                ..
+                            } = conn;
                             let peer_address = connection.remote_address();
+                            let _x = conns.write().await.push(connection);
                             listen_for_messages(uni_streams, peer_address, message_sender.clone());
                         }
                         Err(err) => {
@@ -127,7 +131,7 @@ impl Peer {
                 endpoint,
                 client_cfg,
                 message_tx,
-                connections: Arc::new(RwLock::new(Vec::new())),
+                connections,
             },
             message_rx,
         ))
@@ -145,7 +149,7 @@ impl Peer {
         let mut stream = new_conn.connection.open_uni().await?;
         let _ = stream.write_all(&msg).await?;
         stream.finish().await?;
-        self.connections.write().await.push(new_conn);
+        self.connections.write().await.push(new_conn.connection);
         Ok(())
     }
 
