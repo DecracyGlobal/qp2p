@@ -396,7 +396,7 @@ mod tests {
     use crate::{config::Config, wire_msg::WireMsg, Error};
     use std::net::{IpAddr, Ipv4Addr};
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn echo_service() -> Result<(), Error> {
         let qp2p = QuicP2p::with_config(
             Some(Config {
