@@ -41,10 +41,10 @@ pub enum Error {
     #[error("I/O Error")]
     Io(#[from] io::Error),
     /// Failure encountered when establishing a connection with another peer.
-    #[error("Establishing connection")]
+    #[error("Error establishing connection: {0}")]
     Connect(#[from] quinn::ConnectError),
     /// An existing connection with another peer has been lost.
-    #[error("Quinn Connection lost")]
+    #[error("Quinn Connection lost: {0}")]
     Connection(#[from] quinn::ConnectionError),
     /// Failed to create a new endpoint.
     #[error("Creating endpoint")]
